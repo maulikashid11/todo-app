@@ -1,55 +1,47 @@
 import React, { useEffect, useState } from 'react'
 import './App.css'
 import Navbar from './components/Navbar'
+import { useDispatch, useSelector } from 'react-redux'
+import { setIsCompleted, setShowFinished, setTodos } from './redux/todoSlice'
 
 export default function App() {
 
   const [todo, setTodo] = useState('')
-  const [todos, setTodos] = useState([])
-  const [showFinished, setShowFinished] = useState(true)
+  const [error, setError] = useState('')
+  const { todos, showFinished } = useSelector(store => store.todo)
+  const dispatch = useDispatch()
 
-  useState(() => {
-    setTodos(JSON.parse(localStorage.getItem('todos')) || [])
-    setTodo(JSON.parse(localStorage.getItem('todo')) || '')
-    setShowFinished(JSON.parse(localStorage.getItem('isFinished')) || true)
+  useEffect(() => {
+    dispatch(setTodos(JSON.parse(localStorage.getItem('todos')) === null ? [] : JSON.parse(localStorage.getItem('todos') || [])))
+    dispatch(setShowFinished(JSON.parse(localStorage.getItem('showFinished') || true)))
   }, [])
 
-  
-  const saveToLocalStorage = () => {
-    localStorage.setItem('todos', JSON.stringify(todos))
-    localStorage.setItem('todo', JSON.stringify(todo))
-    localStorage.setItem('isFinished', JSON.stringify(showFinished))
-  }
-  saveToLocalStorage()
   const addTodo = () => {
-    setTodos([...todos, { todo, id: crypto.randomUUID(), isCompleted: false }])
-    setTodo('')
-    saveToLocalStorage()
+    if (todo) {
+      dispatch(setTodos([...todos, { todo, id: crypto.randomUUID(), isCompleted: false }]))
+      setTodo('')
+    } else {
+      setError('Please enter todo')
+    }
   }
   const editTodo = (e, id) => {
     const t = todos.find(item => item.id === id)
     console.log(t)
     setTodo(t.todo)
     let newTodos = todos.filter((item) => item.id !== id)
-    setTodos(newTodos)
-    saveToLocalStorage()
+    dispatch(setTodos(newTodos))
   }
   const deleteTodo = (e, id) => {
     let newTodos = todos.filter((item) => item.id !== id)
-    setTodos(newTodos)
-    saveToLocalStorage()
+    dispatch(setTodos(newTodos))
   }
   const checkbox = (e, id) => {
     const td = todos.findIndex((item) => item.id === id)
-    todos[td].isCompleted = !todos[td].isCompleted
-    let newTodos = [...todos]
-    setTodos(newTodos)
-    saveToLocalStorage()
+    dispatch(setIsCompleted(td))
   }
 
   const toggleFinished = () => {
-    setShowFinished(!showFinished)
-    saveToLocalStorage()
+    dispatch(setShowFinished(!showFinished))
   }
   return (
     <>
@@ -57,8 +49,12 @@ export default function App() {
       <div className="container bg-slate-600 md:w-2/3 mx-auto my-5 text-white p-5 rounded-sm">
         <div className="addTasks">
           <h2 className='font-bold my-2 text-xl'>Add Your todo</h2>
-          <input onChange={(e) => { setTodo(e.target.value)}} value={todo} type="text" className="bg-slate-500 mr-5 outline-0 rounded-md text-xl p-1" />
+          <input onChange={(e) => { setTodo(e.target.value); setError('') }} value={todo} placeholder='Enter todo' type="text" className="bg-slate-500 mr-5 outline-0 rounded-md text-xl p-1" />
           <button onClick={addTodo} className='bg-violet-600  p-1 px-2 font-bold rounded-sm cursor-pointer'>Add</button>
+          {
+            error &&
+            <p className='text-red-500'>{error}</p>
+          }
         </div>
         <div className="todo-container">
           <h2 className='font-bold my-2'>Your todos</h2>
